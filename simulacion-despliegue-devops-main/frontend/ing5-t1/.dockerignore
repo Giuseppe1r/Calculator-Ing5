@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.git/
+.gitignore
+*.md
+*.ps1
+# Los .env locales no deben hornearse en la imagen: el valor de produccion
+# entra por el build-arg VITE_API_BASE_URL.
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+*.log

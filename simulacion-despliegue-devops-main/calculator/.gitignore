@@ -1,0 +1,53 @@
+target/
+build/
+.gradle/
+out/
+bin/
+*.class
+*.jar
+*.war
+*.ear
+*.rar
+
+
+*.mv.db
+*.trace.db
+data/
+db/
+
+
+*.log
+logs/
+
+
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+# VS Code
+.vscode/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbproject/genfiles.properties
+build.xml
+
+
+.DS_Store
+Thumbs.db
+desktop.ini

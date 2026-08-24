@@ -1,0 +1,74 @@
+name: calculator
+
+services:
+
+  db:
+    build:
+      context: ./db
+    image: calculator-db:local
+    container_name: calculator-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-calculator}
+      MYSQL_USER: ${MYSQL_USER:-calculator}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-calculator}
+    ports:
+      # Publicado solo en loopback: util para inspeccionar la BD desde el host
+      # sin dejar MySQL expuesto en todas las interfaces de red.
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [calcnet]
+
+  backend:
+    build:
+      context: ./calculator
+    image: calculator-backend:local
+    container_name: calculator-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ${MYSQL_DATABASE:-calculator}
+      DB_USER: ${MYSQL_USER:-calculator}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-calculator}
+    ports:
+      - "8080:8080"
+    depends_on:
+      # Antes era un depends_on simple, que solo espera a que el contenedor
+      # arranque: el backend intentaba conectarse a un MySQL todavia sin
+      # inicializar y moria. service_healthy espera al healthcheck.
+      db:
+        condition: service_healthy
+    networks: [calcnet]
+
+  frontend:
+    build:
+      context: ./frontend/ing5-t1
+      args:
+        VITE_API_BASE_URL: /api
+    image: calculator-frontend:local
+    container_name: calculator-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      # nginx resuelve el host "backend" al arrancar, asi que necesita que el
+      # servicio ya este levantado.
+      backend:
+        condition: service_healthy
+    networks: [calcnet]
+
+volumes:
+  mysql_data:
+
+networks:
+  calcnet:
+    driver: bridge
