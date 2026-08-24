@@ -1,4 +1,4 @@
-name: Deploy
+name: CI
 
 on:
   push:
@@ -6,7 +6,8 @@ on:
       - main
 
 jobs:
-  deploy:
+  verificar:
+    name: Verificar servidor
     runs-on: self-hosted
 
     steps:
@@ -17,3 +18,16 @@ jobs:
           hostname
           pwd
           ls -la
+
+  deploy:
+    name: Deploy
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ejecutar Deploy
+        run: |
+          echo "Iniciando deployment..."
+          echo "Servidor: $(hostname)"
+          echo "Directorio: $(pwd)"
