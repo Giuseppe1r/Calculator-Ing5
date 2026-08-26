@@ -19,6 +19,11 @@ jobs:
           pwd
           ls -la
 
+      - name: Verificar Docker
+        run: |
+          docker version
+          docker compose version
+
   deploy:
     name: Deploy
     needs: verificar
@@ -27,8 +32,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ejecutar Deploy
+      - name: Levantar el stack
+        working-directory: simulacion-despliegue-devops-main
         run: |
-          echo "Iniciando deployment..."
-          echo "Servidor: $(hostname)"
-          echo "Directorio: $(pwd)"
+          docker compose up -d --build --wait
+
+      - name: Estado de los contenedores
+        working-directory: simulacion-despliegue-devops-main
+        run: docker compose ps
+
+      - name: Logs si el despliegue falla
+        if: failure()
+        working-directory: simulacion-despliegue-devops-main
+        run: docker compose logs --tail 100
