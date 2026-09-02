@@ -57,7 +57,7 @@ function App() {
 
   return (
     <main className="app">
-      <h1>Calculadora 1</h1>
+      <h1> prueba</h1>
       <p className="subtitulo">Simulacion de despliegue DevOps &mdash; React + Spring Boot + MySQL</p>
 
       <section className="tarjeta">
