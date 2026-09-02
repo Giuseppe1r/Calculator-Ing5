@@ -57,7 +57,7 @@ function App() {
 
   return (
     <main className="app">
-      <h1> Why do u lie to yourself?</h1>
+      <h1> Why do u lie to yourself???</h1>
       <p className="subtitulo">Simulacion de despliegue DevOps &mdash; React + Spring Boot + MySQL</p>
 
       <section className="tarjeta">
