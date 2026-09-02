@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD - Deploy Calculator
 
 on:
   push:
@@ -6,9 +6,10 @@ on:
       - main
 
 jobs:
+
   verificar:
-    name: Verificar servidor
-    runs-on: self-hosted
+    name: Verificar servidor Linux
+    runs-on: [self-hosted, linux, x64]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,24 +25,84 @@ jobs:
           docker version
           docker compose version
 
+
   deploy:
-    name: Deploy
+    name: Deploy en Windows
     needs: verificar
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, x64]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Levantar el stack
+      - name: Construir imagen backend
         working-directory: simulacion-despliegue-devops-main
         run: |
-          docker compose up -d --build --wait
+          docker build -t calculator-backend:local ./calculator
+
+      - name: Construir imagen frontend
+        working-directory: simulacion-despliegue-devops-main
+        run: |
+          docker build -t calculator-frontend:local ./frontend/ing5-t1
+
+      - name: Construir imagen base de datos
+        working-directory: simulacion-despliegue-devops-main
+        run: |
+          docker build -t calculator-db:local ./db
+
+      - name: Transferir backend a Windows
+        working-directory: simulacion-despliegue-devops-main
+        run: |
+          docker save calculator-backend:local | gzip > calculator-backend.tar.gz
+          scp calculator-backend.tar.gz grid101:"C:/Users/gport/"
+
+      - name: Transferir frontend a Windows
+        working-directory: simulacion-despliegue-devops-main
+        run: |
+          docker save calculator-frontend:local | gzip > calculator-frontend.tar.gz
+          scp calculator-frontend.tar.gz grid101:"C:/Users/gport/"
+
+      - name: Transferir base de datos a Windows
+        working-directory: simulacion-despliegue-devops-main
+        run: |
+          docker save calculator-db:local | gzip > calculator-db.tar.gz
+          scp calculator-db.tar.gz grid101:"C:/Users/gport/"
+
+      - name: Cargar imágenes en Windows
+        run: |
+          ssh grid101 "powershell -Command \"[System.IO.Compression.GzipStream]::new([System.IO.File]::OpenRead('C:\Users\gport\calculator-backend.tar.gz'), [System.IO.Compression.CompressionMode]::Decompress).CopyTo([System.IO.File]::Create('C:\Users\gport\calculator-backend.tar'))\""
+
+          ssh grid101 "powershell -Command \"[System.IO.Compression.GzipStream]::new([System.IO.File]::OpenRead('C:\Users\gport\calculator-frontend.tar.gz'), [System.IO.Compression.CompressionMode]::Decompress).CopyTo([System.IO.File]::Create('C:\Users\gport\calculator-frontend.tar'))\""
+
+          ssh grid101 "powershell -Command \"[System.IO.Compression.GzipStream]::new([System.IO.File]::OpenRead('C:\Users\gport\calculator-db.tar.gz'), [System.IO.Compression.CompressionMode]::Decompress).CopyTo([System.IO.File]::Create('C:\Users\gport\calculator-db.tar'))\""
+
+          ssh grid101 "docker load -i C:\Users\gport\calculator-backend.tar"
+          ssh grid101 "docker load -i C:\Users\gport\calculator-frontend.tar"
+          ssh grid101 "docker load -i C:\Users\gport\calculator-db.tar"
+
+      - name: Eliminar archivos temporales
+        run: |
+          ssh grid101 "del C:\Users\gport\calculator-backend.tar.gz C:\Users\gport\calculator-backend.tar"
+          ssh grid101 "del C:\Users\gport\calculator-frontend.tar.gz C:\Users\gport\calculator-frontend.tar"
+          ssh grid101 "del C:\Users\gport\calculator-db.tar.gz C:\Users\gport\calculator-db.tar"
+
+      - name: Copiar docker-compose.yml
+        working-directory: simulacion-despliegue-devops-main
+        run: |
+          scp docker-compose.yml grid101:"C:/Users/gport/"
+
+      - name: Desplegar en Windows
+        run: |
+          ssh grid101 "docker compose -f C:/Users/gport/docker-compose.yml up -d --force-recreate"
 
       - name: Estado de los contenedores
-        working-directory: simulacion-despliegue-devops-main
-        run: docker compose ps
+        run: |
+          ssh grid101 "docker compose -f C:/Users/gport/docker-compose.yml ps"
+
+      - name: Verificar aplicación
+        run: |
+          ssh grid101 "curl http://localhost:3000/"
 
       - name: Logs si el despliegue falla
         if: failure()
-        working-directory: simulacion-despliegue-devops-main
-        run: docker compose logs --tail 100
+        run: |
+          ssh grid101 "docker compose -f C:/Users/gport/docker-compose.yml logs --tail 100"
