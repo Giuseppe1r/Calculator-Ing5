@@ -31,8 +31,18 @@ jobs:
     needs: verificar
     runs-on: [self-hosted, linux, x64]
 
+    env:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+
     steps:
+
       - uses: actions/checkout@v4
+
+      - name: Verificar BuildKit
+        run: |
+          echo "DOCKER_BUILDKIT=$DOCKER_BUILDKIT"
+          docker buildx version
 
       - name: Construir imagen backend
         working-directory: simulacion-despliegue-devops-main
@@ -85,18 +95,22 @@ jobs:
           ssh grid101 "del C:\Users\gport\calculator-frontend.tar.gz C:\Users\gport\calculator-frontend.tar"
           ssh grid101 "del C:\Users\gport\calculator-db.tar.gz C:\Users\gport\calculator-db.tar"
 
+      - name: Crear directorio de despliegue en Windows
+        run: |
+          ssh grid101 "if not exist C:\Users\gport\calculator-deploy mkdir C:\Users\gport\calculator-deploy"
+
       - name: Copiar docker-compose.yml
         working-directory: simulacion-despliegue-devops-main
         run: |
-          scp docker-compose.yml grid101:"C:/Users/gport/"
+          scp docker-compose.yml grid101:"C:/Users/gport/calculator-deploy/"
 
       - name: Desplegar en Windows
         run: |
-          ssh grid101 "docker compose -f C:/Users/gport/docker-compose.yml up -d --force-recreate"
+          ssh grid101 "docker compose -f C:/Users/gport/calculator-deploy/docker-compose.yml up -d --force-recreate"
 
       - name: Estado de los contenedores
         run: |
-          ssh grid101 "docker compose -f C:/Users/gport/docker-compose.yml ps"
+          ssh grid101 "docker compose -f C:/Users/gport/calculator-deploy/docker-compose.yml ps"
 
       - name: Verificar aplicación
         run: |
@@ -105,4 +119,4 @@ jobs:
       - name: Logs si el despliegue falla
         if: failure()
         run: |
-          ssh grid101 "docker compose -f C:/Users/gport/docker-compose.yml logs --tail 100"
+          ssh grid101 "docker compose -f C:/Users/gport/calculator-deploy/docker-compose.yml logs --tail 100"
